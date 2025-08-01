@@ -37,7 +37,7 @@ Screenshots of the application:
 To download and use Digitalk on your local machine:
 
 ```bash
-git clone https://github.com/deeptigupta16/digitalk.git
+git clone https://github.com/DeeptiGupta16/DigiTalk.git
 cd digitalk
 ```
 
