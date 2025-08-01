@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digitalk - Speech to Text</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+    <div class="matrix-bg"></div>
+    
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <div class="logo" onclick="window.location.href='home.html'">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="18" stroke="url(#gradient)" stroke-width="2" fill="rgba(0, 212, 255, 0.1)"/>
+                        <path d="M12 20 L18 14 L18 17 L28 17 L28 20 L28 23 L18 23 L18 26 L12 20 Z" fill="url(#gradient)"/>
+                        <circle cx="30" cy="12" r="2" fill="#00ff88"/>
+                        <circle cx="30" cy="28" r="2" fill="#8b5cf6"/>
+                        <defs>
+                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#00d4ff"/>
+                                <stop offset="100%" style="stop-color:#8b5cf6"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <h1>Digitalk</h1>
+                </div>
+            </div>
+            <div class="nav-menu">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="speech-to-text.html" class="nav-link active">Speech to Text</a>
+                <a href="text-to-speech.html" class="nav-link">Text to Speech</a>
+                <a href="profile.html" class="nav-link">Profile</a>
+                <button class="nav-link logout-btn" id="logoutBtn">Logout</button>
+            </div>
+            <div class="nav-controls">
+                <!-- Dark mode only -->
+            </div>
+        </nav>
+    </header>
+
+    <main class="stt-main">
+        <div class="feature-header">
+            <h1>Speech to Text</h1>
+            <p>Use your microphone to speak and see your words transcribed in real time.</p>
+        </div>
+
+        <div class="stt-container">
+            <div class="microphone-section">
+                <div class="mic-visual" id="micVisual">
+                    <div class="mic-icon">🎤</div>
+                    <div class="mic-status" id="micStatus">Click to start listening</div>
+                </div>
+                
+                <div class="mic-controls">
+                    <button class="btn btn-primary mic-btn" id="startBtn">
+                        <span class="btn-icon">🎤</span>
+                        Start Listening
+                    </button>
+                    <button class="btn btn-secondary mic-btn" id="stopBtn" disabled>
+                        <span class="btn-icon">⏹️</span>
+                        Stop
+                    </button>
+                </div>
+
+                <div class="language-controls">
+                    <div class="form-group">
+                        <label for="languageSelect">English Accent</label>
+                        <select id="languageSelect">
+                            <option value="en-US">English (US)</option>
+                            <option value="en-GB">English (UK)</option>
+                            <option value="en-AU">English (Australia)</option>
+                            <option value="en-CA">English (Canada)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="transcription-section">
+                <div class="form-group">
+                    <label for="transcriptionOutput">Transcription</label>
+                    <textarea id="transcriptionOutput" placeholder="Your speech will appear here..." rows="8" readonly></textarea>
+                    <div class="transcription-info">
+                        <span class="word-count">Words: <span id="wordCount">0</span></span>
+                        <span class="confidence" id="confidenceLevel"></span>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" id="clearBtn">
+                        <span class="btn-icon">🗑️</span>
+                        Clear
+                    </button>
+                    <button class="btn btn-secondary" id="copyBtn" disabled>
+                        <span class="btn-icon">📋</span>
+                        Copy
+                    </button>
+                    <button class="btn btn-primary" id="saveBtn" disabled>
+                        <span class="btn-icon">💾</span>
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+    </main>
+
+    <script src="auth.js"></script>
+    <script src="speech.js"></script>
+    <script>
+        // Initialize STT functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            initializeSTT();
+        });
+
+        let recognition = null;
+        let isListening = false;
+        let finalTranscript = '';
+        let interimTranscript = '';
+
+        function initializeSTT() {
+            setupSpeechRecognition();
+            setupEventListeners();
+        }
+
+        function setupSpeechRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                showError('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
+                document.getElementById('startBtn').disabled = true;
+                return;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = function() {
+                isListening = true;
+                updateMicStatus('Listening...', 'listening');
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+            };
+
+            recognition.onresult = function(event) {
+                interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                        
+                        // Show confidence level
+                        const confidence = Math.round(event.results[i][0].confidence * 100);
+                        document.getElementById('confidenceLevel').textContent = `Confidence: ${confidence}%`;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                displayTranscription();
+                updateWordCount();
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+                let errorMessage = 'Speech recognition error occurred.';
+                
+                switch(event.error) {
+                    case 'no-speech':
+                        errorMessage = 'No speech detected. Please try again.';
+                        break;
+                    case 'audio-capture':
+                        errorMessage = 'Microphone not accessible. Please check permissions.';
+                        break;
+                    case 'not-allowed':
+                        errorMessage = 'Microphone permission denied. Please allow microphone access.';
+                        break;
+                    case 'network':
+                        errorMessage = 'Network error occurred. Please check your connection.';
+                        break;
+                }
+                
+                showError(errorMessage);
+                stopListening();
+            };
+
+            recognition.onend = function() {
+                if (isListening) {
+                    updateMicStatus('Processing...', 'processing');
+                    setTimeout(() => {
+                        updateMicStatus('Click to start listening', 'idle');
+                    }, 1000);
+                }
+                
+                isListening = false;
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+            };
+        }
+
+        function setupEventListeners() {
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const languageSelect = document.getElementById('languageSelect');
+
+            startBtn.addEventListener('click', startListening);
+            stopBtn.addEventListener('click', stopListening);
+            clearBtn.addEventListener('click', clearTranscription);
+            copyBtn.addEventListener('click', copyTranscription);
+            saveBtn.addEventListener('click', saveTranscription);
+
+            languageSelect.addEventListener('change', function() {
+                if (recognition) {
+                    recognition.lang = this.value;
+                }
+            });
+        }
+
+        function startListening() {
+            if (!recognition) {
+                showError('Speech recognition not available');
+                return;
+            }
+
+            try {
+                recognition.lang = document.getElementById('languageSelect').value;
+                recognition.start();
+            } catch (error) {
+                showError('Failed to start speech recognition: ' + error.message);
+            }
+        }
+
+        function stopListening() {
+            if (recognition && isListening) {
+                recognition.stop();
+                isListening = false;
+            }
+        }
+
+        function displayTranscription() {
+            const output = document.getElementById('transcriptionOutput');
+            const fullTranscript = finalTranscript + interimTranscript;
+            output.value = fullTranscript;
+            
+            // Enable/disable buttons based on content
+            const hasContent = fullTranscript.trim().length > 0;
+            document.getElementById('copyBtn').disabled = !hasContent;
+            document.getElementById('saveBtn').disabled = !hasContent;
+        }
+
+        function updateWordCount() {
+            const text = finalTranscript + interimTranscript;
+            const words = text.trim().split(/\s+/).filter(word => word.length > 0);
+            document.getElementById('wordCount').textContent = words.length;
+        }
+
+        function updateMicStatus(message, type) {
+            const micStatus = document.getElementById('micStatus');
+            const micVisual = document.getElementById('micVisual');
+            
+            micStatus.textContent = message;
+            micVisual.className = `mic-visual ${type}`;
+        }
+
+        function clearTranscription() {
+            finalTranscript = '';
+            interimTranscript = '';
+            document.getElementById('transcriptionOutput').value = '';
+            document.getElementById('wordCount').textContent = '0';
+            document.getElementById('confidenceLevel').textContent = '';
+            document.getElementById('copyBtn').disabled = true;
+            document.getElementById('saveBtn').disabled = true;
+        }
+
+        function copyTranscription() {
+            const output = document.getElementById('transcriptionOutput');
+            if (output.value.trim()) {
+                navigator.clipboard.writeText(output.value).then(() => {
+                    showSuccess('Text copied to clipboard!');
+                }).catch(() => {
+                    // Fallback for older browsers
+                    output.select();
+                    document.execCommand('copy');
+                    showSuccess('Text copied to clipboard!');
+                });
+            }
+        }
+
+        function saveTranscription() {
+            const text = document.getElementById('transcriptionOutput').value.trim();
+            const language = document.getElementById('languageSelect').value;
+            const confidence = document.getElementById('confidenceLevel').textContent;
+            
+            if (!text) {
+                showError('No transcription to save');
+                return;
+            }
+
+            const currentUser = getCurrentUser();
+            if (!currentUser) {
+                showError('Please log in to save transcriptions');
+                return;
+            }
+
+            const conversion = {
+                id: Date.now(),
+                type: 'stt',
+                text: text,
+                language: language,
+                confidence: confidence,
+                wordCount: document.getElementById('wordCount').textContent,
+                timestamp: Date.now()
+            };
+
+            const existingConversions = JSON.parse(localStorage.getItem(`conversions_${currentUser.email}`)) || [];
+            existingConversions.push(conversion);
+            localStorage.setItem(`conversions_${currentUser.email}`, JSON.stringify(existingConversions));
+
+            showSuccess('Transcription saved successfully!');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

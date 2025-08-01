@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digitalk - Home</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+    <div class="matrix-bg"></div>
+    
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <div class="logo">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="18" stroke="url(#gradient)" stroke-width="2" fill="rgba(0, 212, 255, 0.1)"/>
+                        <path d="M12 20 L18 14 L18 17 L28 17 L28 20 L28 23 L18 23 L18 26 L12 20 Z" fill="url(#gradient)"/>
+                        <circle cx="30" cy="12" r="2" fill="#00ff88"/>
+                        <circle cx="30" cy="28" r="2" fill="#8b5cf6"/>
+                        <defs>
+                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#00d4ff"/>
+                                <stop offset="100%" style="stop-color:#8b5cf6"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <h1>Digitalk</h1>
+                </div>
+            </div>
+            <div class="nav-menu">
+                <a href="home.html" class="nav-link active">Home</a>
+                <a href="speech-to-text.html" class="nav-link">Speech to Text</a>
+                <a href="text-to-speech.html" class="nav-link">Text to Speech</a>
+                <a href="profile.html" class="nav-link">Profile</a>
+                <button class="nav-link logout-btn" id="logoutBtn">Logout</button>
+            </div>
+            <div class="nav-controls">
+                <!-- Dark mode only -->
+            </div>
+        </nav>
+    </header>
+
+    <main class="home-main">
+        <div class="welcome-section">
+            <h1 class="welcome-title">Welcome back, <span id="userName">User</span></h1>
+            <p class="welcome-subtitle">Choose what to do: convert speech, generate voice, or manage your experience.</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card clickable" onclick="window.location.href='speech-to-text.html'">
+                <div class="feature-icon">🎤</div>
+                <h3>Speech to Text</h3>
+                <p>Use your microphone to speak and see your words transcribed in real time.</p>
+                <div class="feature-arrow">→</div>
+            </div>
+            
+            <div class="feature-card clickable" onclick="window.location.href='text-to-speech.html'">
+                <div class="feature-icon">🔊</div>
+                <h3>Text to Speech</h3>
+                <p>Type your text and turn it into natural-sounding voice output in seconds.</p>
+                <div class="feature-arrow">→</div>
+            </div>
+            
+            <div class="feature-card clickable" onclick="window.location.href='profile.html'">
+                <div class="feature-icon">👤</div>
+                <h3>Profile</h3>
+                <p>Update your personal details and access all your saved conversions.</p>
+                <div class="feature-arrow">→</div>
+            </div>
+        </div>
+
+        <div class="recent-activity">
+            <h2>Recent Activity</h2>
+            <div class="activity-list" id="recentActivity">
+                <div class="activity-item empty-state">
+                    <p>No recent activity. Start by converting speech to text or text to speech!</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="auth.js"></script>
+    <script>
+        // Load user data and recent activity on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserData();
+            loadRecentActivity();
+        });
+
+        function loadUserData() {
+            const currentUser = getCurrentUser();
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.name;
+            } else {
+                window.location.href = 'login.html';
+            }
+        }
+
+        function loadRecentActivity() {
+            const currentUser = getCurrentUser();
+            if (!currentUser) return;
+
+            const conversions = JSON.parse(localStorage.getItem(`conversions_${currentUser.email}`)) || [];
+            const recentConversions = conversions.slice(-5).reverse();
+            
+            const activityList = document.getElementById('recentActivity');
+            
+            if (recentConversions.length === 0) {
+                activityList.innerHTML = `
+                    <div class="activity-item empty-state">
+                        <p>No recent activity. Start by converting speech to text or text to speech!</p>
+                    </div>
+                `;
+            } else {
+                activityList.innerHTML = recentConversions.map(conversion => `
+                    <div class="activity-item">
+                        <div class="activity-type">${conversion.type === 'stt' ? '🎤' : '🔊'}</div>
+                        <div class="activity-content">
+                            <h4>${conversion.type === 'stt' ? 'Speech to Text' : 'Text to Speech'}</h4>
+                            <p>${conversion.text.substring(0, 100)}...</p>
+                            <span class="activity-date">${new Date(conversion.timestamp).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+    </script>
+</body>
+</html>

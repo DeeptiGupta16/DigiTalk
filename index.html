@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digitalk - Get Started</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+    <div class="matrix-bg"></div>
+    
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <div class="logo">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="18" stroke="url(#gradient)" stroke-width="2" fill="rgba(0, 212, 255, 0.1)"/>
+                        <path d="M12 20 L18 14 L18 17 L28 17 L28 20 L28 23 L18 23 L18 26 L12 20 Z" fill="url(#gradient)"/>
+                        <circle cx="30" cy="12" r="2" fill="#00ff88"/>
+                        <circle cx="30" cy="28" r="2" fill="#8b5cf6"/>
+                        <defs>
+                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#00d4ff"/>
+                                <stop offset="100%" style="stop-color:#8b5cf6"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <h1>Digitalk</h1>
+                </div>
+            </div>
+            <div class="nav-controls">
+                <!-- Dark mode only -->
+            </div>
+        </nav>
+    </header>
+
+    <main class="get-started-main">
+        <div class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">Welcome to Digitalk</h1>
+                <p class="hero-tagline">Voice becomes text. Text becomes voice. Instantly.</p>
+                <div class="hero-description-box">
+                    <p class="hero-description">
+                        Whether you're talking or typing, Digitalk transforms your voice and text instantly — no clutter, no extras. A clean, futuristic voice interaction platform designed for the modern web. Use your microphone to transcribe speech in real time, type your words to generate natural-sounding audio, or revisit saved conversions — all with a smooth, minimal interface. Digitalk is your bridge between voice and expression — speak, type, and transform your communication effortlessly.
+                    </p>
+                </div>
+
+                <div class="cta-buttons">
+                    <button class="btn btn-primary" onclick="window.location.href='login.html'">
+                        Get Started
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="features-preview">
+            <div class="feature-card">
+                <div class="feature-icon">🎤</div>
+                <h3>Speech to Text</h3>
+                <p>Convert voice to text using real-time transcription</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔊</div>
+                <h3>Text to Speech</h3>
+                <p>Transform text into natural-sounding voice output</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💾</div>
+                <h3>Save & Manage</h3>
+                <p>Store and access all your conversions in your profile</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

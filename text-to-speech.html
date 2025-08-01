@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digitalk - Text to Speech</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+    <div class="matrix-bg"></div>
+    
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <div class="logo" onclick="window.location.href='home.html'">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="18" stroke="url(#gradient)" stroke-width="2" fill="rgba(0, 212, 255, 0.1)"/>
+                        <path d="M12 20 L18 14 L18 17 L28 17 L28 20 L28 23 L18 23 L18 26 L12 20 Z" fill="url(#gradient)"/>
+                        <circle cx="30" cy="12" r="2" fill="#00ff88"/>
+                        <circle cx="30" cy="28" r="2" fill="#8b5cf6"/>
+                        <defs>
+                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#00d4ff"/>
+                                <stop offset="100%" style="stop-color:#8b5cf6"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <h1>Digitalk</h1>
+                </div>
+            </div>
+            <div class="nav-menu">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="speech-to-text.html" class="nav-link">Speech to Text</a>
+                <a href="text-to-speech.html" class="nav-link active">Text to Speech</a>
+                <a href="profile.html" class="nav-link">Profile</a>
+                <button class="nav-link logout-btn" id="logoutBtn">Logout</button>
+            </div>
+            <div class="nav-controls">
+                <!-- Dark mode only -->
+            </div>
+        </nav>
+    </header>
+
+    <main class="tts-main">
+        <div class="feature-header">
+            <h1>Text to Speech</h1>
+            <p>Type your text and turn it into natural-sounding voice output in seconds.</p>
+        </div>
+
+        <div class="tts-container">
+            <div class="input-section">
+                <div class="form-group">
+                    <label for="textInput">Enter your text</label>
+                    <textarea id="textInput" placeholder="Type or paste your text here..." rows="6"></textarea>
+                    <div class="character-count">
+                        <span id="charCount">0</span> characters
+                    </div>
+                </div>
+
+                <div class="voice-controls">
+                    <div class="form-group">
+                        <label for="voiceSelect">Select English Voice</label>
+                        <select id="voiceSelect">
+                            <option value="">Loading voices...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rateSlider">Speech Rate</label>
+                        <input type="range" id="rateSlider" min="0.5" max="2" step="0.1" value="1">
+                        <span id="rateValue">1.0x</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pitchSlider">Pitch</label>
+                        <input type="range" id="pitchSlider" min="0" max="2" step="0.1" value="1">
+                        <span id="pitchValue">1.0</span>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="speakBtn">
+                        <span class="btn-icon">🔊</span>
+                        Speak
+                    </button>
+                    <button class="btn btn-secondary" id="stopBtn" disabled>
+                        <span class="btn-icon">⏹️</span>
+                        Stop
+                    </button>
+                    <button class="btn btn-secondary" id="saveBtn" disabled>
+                        <span class="btn-icon">💾</span>
+                        Save
+                    </button>
+                </div>
+            </div>
+
+            <div class="status-section">
+                <div class="status-indicator" id="statusIndicator">
+                    <div class="status-text">Ready to speak</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+    </main>
+
+    <script src="auth.js"></script>
+    <script>
+        // Initialize TTS functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            initializeTTS();
+        });
+
+        let synth = window.speechSynthesis;
+        let voices = [];
+        let currentUtterance = null;
+
+        function initializeTTS() {
+            loadVoices();
+            setupEventListeners();
+            
+            // Load voices when they become available
+            if (synth.onvoiceschanged !== undefined) {
+                synth.onvoiceschanged = loadVoices;
+            }
+        }
+
+        function loadVoices() {
+            const allVoices = synth.getVoices();
+            // Filter for English voices only
+            voices = allVoices.filter(voice => voice.lang.startsWith('en'));
+            const voiceSelect = document.getElementById('voiceSelect');
+            
+            voiceSelect.innerHTML = '';
+            
+            if (voices.length === 0) {
+                voiceSelect.innerHTML = '<option value="">No English voices available</option>';
+                return;
+            }
+
+            // Group voices by gender for better organization
+            const maleVoices = [];
+            const femaleVoices = [];
+            const otherVoices = [];
+
+            voices.forEach((voice, index) => {
+                const voiceName = voice.name.toLowerCase();
+                if (voiceName.includes('male') && !voiceName.includes('female')) {
+                    maleVoices.push({ voice, index });
+                } else if (voiceName.includes('female') || voiceName.includes('woman')) {
+                    femaleVoices.push({ voice, index });
+                } else {
+                    otherVoices.push({ voice, index });
+                }
+            });
+
+            // Add grouped options
+            if (maleVoices.length > 0) {
+                const maleGroup = document.createElement('optgroup');
+                maleGroup.label = 'Male Voices';
+                maleVoices.forEach(({ voice, index }) => {
+                    const option = document.createElement('option');
+                    option.value = allVoices.indexOf(voice);
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    maleGroup.appendChild(option);
+                });
+                voiceSelect.appendChild(maleGroup);
+            }
+
+            if (femaleVoices.length > 0) {
+                const femaleGroup = document.createElement('optgroup');
+                femaleGroup.label = 'Female Voices';
+                femaleVoices.forEach(({ voice, index }) => {
+                    const option = document.createElement('option');
+                    option.value = allVoices.indexOf(voice);
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    femaleGroup.appendChild(option);
+                });
+                voiceSelect.appendChild(femaleGroup);
+            }
+
+            // Add other voices without grouping
+            otherVoices.forEach(({ voice, index }) => {
+                const option = document.createElement('option');
+                option.value = allVoices.indexOf(voice);
+                option.textContent = `${voice.name} (${voice.lang})`;
+                voiceSelect.appendChild(option);
+            });
+
+            // Select default English voice
+            const defaultEnglishVoice = voices.find(voice => voice.default && voice.lang.startsWith('en')) || voices[0];
+            if (defaultEnglishVoice) {
+                voiceSelect.value = allVoices.indexOf(defaultEnglishVoice);
+            }
+        }
+
+        function setupEventListeners() {
+            const textInput = document.getElementById('textInput');
+            const charCount = document.getElementById('charCount');
+            const rateSlider = document.getElementById('rateSlider');
+            const rateValue = document.getElementById('rateValue');
+            const pitchSlider = document.getElementById('pitchSlider');
+            const pitchValue = document.getElementById('pitchValue');
+            const speakBtn = document.getElementById('speakBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const saveBtn = document.getElementById('saveBtn');
+
+            // Character count
+            textInput.addEventListener('input', function() {
+                charCount.textContent = this.value.length;
+                saveBtn.disabled = this.value.trim() === '';
+            });
+
+            // Rate slider
+            rateSlider.addEventListener('input', function() {
+                rateValue.textContent = this.value + 'x';
+            });
+
+            // Pitch slider
+            pitchSlider.addEventListener('input', function() {
+                pitchValue.textContent = this.value;
+            });
+
+            // Speak button
+            speakBtn.addEventListener('click', speakText);
+
+            // Stop button
+            stopBtn.addEventListener('click', stopSpeaking);
+
+            // Save button
+            saveBtn.addEventListener('click', saveConversion);
+        }
+
+        function speakText() {
+            const text = document.getElementById('textInput').value.trim();
+            
+            if (!text) {
+                showError('Please enter some text to speak');
+                return;
+            }
+
+            if (!synth) {
+                showError('Speech synthesis not supported in this browser');
+                return;
+            }
+
+            // Stop any current speech
+            synth.cancel();
+
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            
+            // Set voice
+            const voiceSelect = document.getElementById('voiceSelect');
+            if (voiceSelect.value && voices[voiceSelect.value]) {
+                currentUtterance.voice = voices[voiceSelect.value];
+            }
+
+            // Set rate and pitch
+            currentUtterance.rate = parseFloat(document.getElementById('rateSlider').value);
+            currentUtterance.pitch = parseFloat(document.getElementById('pitchSlider').value);
+
+            // Event handlers
+            currentUtterance.onstart = function() {
+                updateStatus('Speaking...', 'speaking');
+                document.getElementById('speakBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+            };
+
+            currentUtterance.onend = function() {
+                updateStatus('Finished speaking', 'completed');
+                document.getElementById('speakBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+            };
+
+            currentUtterance.onerror = function(event) {
+                showError('Speech synthesis error: ' + event.error);
+                updateStatus('Error occurred', 'error');
+                document.getElementById('speakBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+            };
+
+            synth.speak(currentUtterance);
+        }
+
+        function stopSpeaking() {
+            if (synth) {
+                synth.cancel();
+                updateStatus('Stopped speaking', 'stopped');
+                document.getElementById('speakBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+            }
+        }
+
+        function saveConversion() {
+            const text = document.getElementById('textInput').value.trim();
+            const voiceSelect = document.getElementById('voiceSelect');
+            const selectedVoice = voiceSelect.options[voiceSelect.selectedIndex]?.text || 'Default';
+            
+            if (!text) {
+                showError('No text to save');
+                return;
+            }
+
+            const currentUser = getCurrentUser();
+            if (!currentUser) {
+                showError('Please log in to save conversions');
+                return;
+            }
+
+            const conversion = {
+                id: Date.now(),
+                type: 'tts',
+                text: text,
+                voice: selectedVoice,
+                rate: document.getElementById('rateSlider').value,
+                pitch: document.getElementById('pitchSlider').value,
+                timestamp: Date.now()
+            };
+
+            const existingConversions = JSON.parse(localStorage.getItem(`conversions_${currentUser.email}`)) || [];
+            existingConversions.push(conversion);
+            localStorage.setItem(`conversions_${currentUser.email}`, JSON.stringify(existingConversions));
+
+            showSuccess('Conversion saved successfully!');
+        }
+
+        function updateStatus(message, type) {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = statusIndicator.querySelector('.status-text');
+            
+            statusText.textContent = message;
+            statusIndicator.className = `status-indicator ${type}`;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
