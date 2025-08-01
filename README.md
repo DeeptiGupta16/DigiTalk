@@ -27,7 +27,7 @@ Screenshots of the application:
 
 ## 🌐 Live Demo
 
-**[https://your-username.github.io/digitalk](https://your-username.github.io/digitalk)**  
+**(https://deeptigupta16.github.io/DigiTalk/)**  
 
 
 ---
@@ -37,7 +37,7 @@ Screenshots of the application:
 To download and use Digitalk on your local machine:
 
 ```bash
-git clone https://github.com/your-username/digitalk.git
+git clone https://github.com/deeptigupta16/digitalk.git
 cd digitalk
 ```
 
